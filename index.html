@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>L'Entre-Terre — Jeu du Chat</title>
+<style>
+  :root{
+    --rouge:#c41e3a;
+    --rouge-dark:#8b0000;
+    --fond:#0a0204;
+    --texte:#e8d5b7;
+    --texte2:#9a8070;
+    --bordure:rgba(139,0,0,0.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    width:600px;height:440px;
+    overflow:hidden;
+    background:transparent;
+    font-family:'Palatino Linotype','Palatino','Book Antiqua',serif;
+  }
+  .scene{
+    width:600px;height:440px;
+    background:rgba(8,2,4,0.95);
+    border:1px solid var(--bordure);
+    position:relative;
+    overflow:hidden;
+  }
+  /* Lueur bordeaux en haut */
+  .scene::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%,rgba(139,0,0,0.15) 0%,transparent 65%);
+    pointer-events:none;
+  }
+
+  /* Ligne déco */
+  .deco-line{
+    width:100%;height:1px;
+    background:linear-gradient(to right,transparent,#6b0f1a 20%,#8b0000 50%,#6b0f1a 80%,transparent);
+    margin-bottom:14px;
+  }
+  .deco-line-bottom{
+    width:100%;height:1px;
+    background:linear-gradient(to right,transparent,#6b0f1a 20%,#8b0000 50%,#6b0f1a 80%,transparent);
+    margin-top:14px;
+  }
+
+  .inner{padding:0 24px 16px;}
+
+  /* Titre */
+  .title-row{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:12px;
+  }
+  .title{font-size:13px;letter-spacing:5px;color:var(--texte2);text-transform:uppercase;}
+  .score-box{display:flex;gap:12px;}
+  .score{text-align:center;}
+  .score-label{font-size:9px;letter-spacing:3px;color:var(--texte2);text-transform:uppercase;}
+  .score-val{font-size:18px;font-weight:700;color:var(--rouge);}
+
+  /* Catégorie */
+  .cat-row{
+    display:flex;align-items:center;gap:8px;
+    margin-bottom:14px;justify-content:center;
+  }
+  .cat-icon{font-size:18px;}
+  .cat-name{font-size:12px;letter-spacing:4px;color:var(--texte2);text-transform:uppercase;}
+
+  /* Mot */
+  .word-section{
+    display:flex;gap:10px;flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom:14px;
+    min-height:50px;align-items:flex-end;
+  }
+  .word-group{display:flex;gap:6px;align-items:flex-end;}
+  .letter-box{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .letter-val{
+    font-size:20px;font-weight:700;height:28px;
+    display:flex;align-items:flex-end;justify-content:center;
+    color:var(--rouge);min-width:16px;text-transform:uppercase;
+    transition:all 0.3s;
+  }
+  .letter-bar{height:2px;min-width:16px;background:rgba(200,130,130,0.25);border-radius:1px;}
+  .letter-bar.active{background:var(--rouge);}
+  .space-sep{width:10px;}
+
+  /* Indice */
+  .hint-row{text-align:center;margin-bottom:12px;}
+  .hint-label{font-size:9px;letter-spacing:4px;color:var(--texte2);text-transform:uppercase;margin-bottom:4px;}
+  .hint-val{font-size:12px;color:var(--texte);font-style:italic;opacity:0.75;}
+
+  /* Timer */
+  .timer-wrap{height:2px;background:rgba(139,0,0,0.2);border-radius:1px;overflow:hidden;margin-bottom:12px;}
+  .timer-bar{height:100%;background:var(--rouge-dark);border-radius:1px;transition:width 1s linear;}
+
+  /* Message */
+  .msg{
+    text-align:center;font-size:12px;letter-spacing:3px;
+    text-transform:uppercase;min-height:18px;
+    margin-bottom:10px;color:#d4a843;
+    animation:fadeMsg 0.4s ease;
+  }
+  @keyframes fadeMsg{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .msg.lose{color:var(--rouge);}
+
+  /* Bottom */
+  .bottom-row{
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .chat-label{font-size:9px;letter-spacing:3px;color:rgba(139,0,0,0.5);text-transform:uppercase;}
+
+  /* Vies */
+  .lives-row{display:flex;gap:4px;align-items:center;}
+  .heart{width:8px;height:8px;border-radius:50%;background:var(--rouge);}
+  .heart.lost{background:rgba(139,0,0,0.2);}
+
+  /* Coins déco */
+  .corner{position:absolute;width:16px;height:16px;border-color:#6b0f1a;border-style:solid;}
+  .corner-tl{top:0;left:0;border-width:2px 0 0 2px;}
+  .corner-tr{top:0;right:0;border-width:2px 2px 0 0;}
+  .corner-bl{bottom:0;left:0;border-width:0 0 2px 2px;}
+  .corner-br{bottom:0;right:0;border-width:0 2px 2px 0;}
+
+  /* Flash victoire */
+  .win-flash{
+    position:absolute;inset:0;
+    background:rgba(196,30,58,0.07);
+    pointer-events:none;opacity:0;transition:opacity 0.3s;
+  }
+  .win-flash.show{opacity:1;}
+
+  /* Status */
+  .status{
+    position:absolute;top:8px;right:12px;
+    font-size:9px;letter-spacing:2px;color:var(--texte2);
+    text-transform:uppercase;display:flex;align-items:center;gap:4px;
+  }
+  .dot{width:5px;height:5px;border-radius:50%;background:#444;}
+  .dot.ok{background:#2a9d4a;}
+  .dot.err{background:var(--rouge);}
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="win-flash" id="win-flash"></div>
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+  <div class="status"><div class="dot" id="dot"></div><span id="status-txt">Connexion...</span></div>
+
+  <div class="deco-line"></div>
+  <div class="inner">
+    <div class="title-row">
+      <div class="title">L'Entre-Terre</div>
+      <div class="score-box">
+        <div class="score"><div class="score-label">Victoires</div><div class="score-val" id="wins">0</div></div>
+      </div>
+    </div>
+
+    <div class="cat-row">
+      <span class="cat-icon" id="cat-icon"></span>
+      <span class="cat-name" id="cat-name"></span>
+    </div>
+
+    <div class="word-section" id="word-section"></div>
+
+    <div class="hint-row">
+      <div class="hint-label">Indice</div>
+      <div class="hint-val" id="hint-val"></div>
+    </div>
+
+    <div class="timer-wrap"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="bottom-row">
+      <div class="lives-row" id="lives-row"></div>
+      <div class="chat-label">Écrivez le mot dans le chat !</div>
+    </div>
+  </div>
+  <div class="deco-line-bottom"></div>
+</div>
+
+<script>
+const CHANNEL = 'atlion_';
+const ROUND_DURATION = 90;
+const MAX_ERRORS = 7;
+
+const WORDS = [
+  {w:"Croc du limier",c:"⚔️",cn:"Armes",h:"Arme griffue du limier"},
+  {w:"Lame blasphématoire",c:"⚔️",cn:"Armes",h:"Épée de Rykard"},
+  {w:"Espadon de la nuit",c:"⚔️",cn:"Armes",h:"Grande épée obscure"},
+  {w:"Épée de Caria",c:"⚔️",cn:"Armes",h:"Lame de la cour de Ranni"},
+  {w:"Katana de lune",c:"⚔️",cn:"Armes",h:"Katana magique de Ranni"},
+  {w:"Lance draconique",c:"⚔️",cn:"Armes",h:"Arme des guerriers dragons"},
+  {w:"Hallebarde dorée",c:"⚔️",cn:"Armes",h:"Arme de l'Ordre Doré"},
+  {w:"Armure de Radahn",c:"🛡️",cn:"Armures",h:"Set du Fléau des Étoiles"},
+  {w:"Armure du Vagabond",c:"🛡️",cn:"Armures",h:"Tenue de départ classe vagabond"},
+  {w:"Set de Blaidd",c:"🛡️",cn:"Armures",h:"Armure du loup à demi-sang"},
+  {w:"Armure de Lionel",c:"🛡️",cn:"Armures",h:"Set très résistant en Leyndell"},
+  {w:"Set de chevalier propre",c:"🛡️",cn:"Armures",h:"Armure d'un chevalier loyal"},
+  {w:"Armure de Malenia",c:"🛡️",cn:"Armures",h:"Set de la Lame de Miquella"},
+  {w:"Ranni",c:"👤",cn:"Personnages",h:"Sorcière aux quatre bras"},
+  {w:"Radahn",c:"👤",cn:"Personnages",h:"Fléau des Étoiles, cavalier géant"},
+  {w:"Malenia",c:"👤",cn:"Personnages",h:"Lame de Miquella"},
+  {w:"Blaidd",c:"👤",cn:"Personnages",h:"Loup à demi-sang de Ranni"},
+  {w:"Melina",c:"👤",cn:"Personnages",h:"Fille de Marika, guide du Terni"},
+  {w:"Morgott",c:"👤",cn:"Personnages",h:"Roi Omis, gardien de Leyndell"},
+  {w:"Godrick",c:"👤",cn:"Personnages",h:"Le Transplanté de Stormveil"},
+  {w:"Dragon d'Agheel",c:"🐉",cn:"Créatures & Boss",h:"Dragon du lac de Limgrave"},
+  {w:"Astel Rejeton du Néant",c:"🐉",cn:"Créatures & Boss",h:"Créature cosmique sous Liurnia"},
+  {w:"Sentinelle de l'Arbre",c:"🐉",cn:"Créatures & Boss",h:"Gardien doré à cheval"},
+  {w:"Géant de feu",c:"🐉",cn:"Créatures & Boss",h:"Colosse du sommet des géants"},
+  {w:"Rennala Reine de la Pleine Lune",c:"🐉",cn:"Créatures & Boss",h:"Boss de l'Académie de Raya Lucaria"},
+  {w:"Maliketh",c:"🐉",cn:"Créatures & Boss",h:"Bête Noire, chien de Marika"},
+  {w:"Nécrolimbe",c:"🌍",cn:"Lieux",h:"Première zone du jeu"},
+  {w:"Liurnia des Lacs",c:"🌍",cn:"Lieux",h:"Région lacustre après Stormveil"},
+  {w:"Caelid",c:"🌍",cn:"Lieux",h:"Région maudite par la flétrissure"},
+  {w:"Leyndell",c:"🌍",cn:"Lieux",h:"Capitale royale des Terres"},
+  {w:"Mont Gelmir",c:"🌍",cn:"Lieux",h:"Volcan de Rykard"},
+  {w:"Farum Azula",c:"🌍",cn:"Lieux",h:"Cité antique dans les nuages"},
+  {w:"Comète Azur",c:"✨",cn:"Magies",h:"Sort de Sellen, rayon continu"},
+  {w:"Lame lunaire",c:"✨",cn:"Magies",h:"Magie tranchante de Ranni"},
+  {w:"Flamme noire",c:"✨",cn:"Magies",h:"Incantation du sang de Mohg"},
+  {w:"Éclat stellaire",c:"✨",cn:"Magies",h:"Projectile magique de base"},
+  {w:"Pluie d'étoiles",c:"✨",cn:"Magies",h:"Sorts qui tombent du ciel"},
+  {w:"Rune majeure",c:"💍",cn:"Objets",h:"Fragment de l'Elden Ring"},
+  {w:"Fragment de carte",c:"💍",cn:"Objets",h:"Révèle une zone sur la carte"},
+  {w:"Larme larvaire",c:"💍",cn:"Objets",h:"Permet de changer de build"},
+  {w:"Cendres de guerre",c:"💍",cn:"Objets",h:"Modifie le skill d'une arme"},
+  {w:"Médaillon secret",c:"💍",cn:"Objets",h:"Ouvre un ascenseur caché"},
+  {w:"Grâce",c:"🩸",cn:"Lore",h:"Lumière dorée guidant les Ternis"},
+  {w:"Sans-éclat",c:"🩸",cn:"Lore",h:"Terni ayant perdu la grâce"},
+  {w:"Ordre d'or",c:"🩸",cn:"Lore",h:"Loi divine de Marika"},
+  {w:"Arbre-Monde",c:"🩸",cn:"Lore",h:"Erdtree, arbre sacré des Terres"},
+  {w:"Destin brisé",c:"🩸",cn:"Lore",h:"Ce qui attend le Terni"},
+];
+
+function norm(s){
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/['\-]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+let word='', wins=0, errors=0, over=false, timer=null, timeLeft=ROUND_DURATION;
+let usedIdx=[];
+
+function pickWord(){
+  if(usedIdx.length>=WORDS.length) usedIdx=[];
+  let i;
+  do{ i=Math.floor(Math.random()*WORDS.length); }while(usedIdx.includes(i));
+  usedIdx.push(i);
+  return WORDS[i];
+}
+
+function newRound(){
+  over=false; errors=0;
+  clearInterval(timer);
+  timeLeft=ROUND_DURATION;
+  const pick=pickWord();
+  word=pick.w;
+  document.getElementById('cat-icon').textContent=pick.c;
+  document.getElementById('cat-name').textContent=pick.cn;
+  document.getElementById('hint-val').textContent=pick.h;
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='msg';
+  document.getElementById('win-flash').classList.remove('show');
+  renderWord(false);
+  renderLives();
+  startTimer();
+}
+
+function renderWord(reveal){
+  const groups=word.split(' ');
+  let html='';
+  groups.forEach((grp,gi)=>{
+    if(gi>0) html+='<div class="space-sep"></div>';
+    html+='<div class="word-group">';
+    grp.split('').forEach((ch,ci)=>{
+      const isFirst=(gi===0&&ci===0);
+      if(ch==="'"){
+        html+=`<div class="letter-box"><div class="letter-val">'</div><div class="letter-bar active"></div></div>`;
+        return;
+      }
+      const show=reveal||isFirst;
+      html+=`<div class="letter-box">
+        <div class="letter-val">${show?ch:''}</div>
+        <div class="letter-bar${show?' active':''}"></div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('word-section').innerHTML=html;
+}
+
+function renderLives(){
+  document.getElementById('lives-row').innerHTML=
+    Array.from({length:MAX_ERRORS},(_,i)=>
+      `<div class="heart${i<errors?' lost':''}"></div>`
+    ).join('');
+}
+
+function startTimer(){
+  document.getElementById('timer-bar').style.width='100%';
+  timer=setInterval(()=>{
+    timeLeft--;
+    const pct=Math.max(0,(timeLeft/ROUND_DURATION)*100);
+    document.getElementById('timer-bar').style.width=pct+'%';
+    if(timeLeft<=0){
+      clearInterval(timer);
+      if(!over){
+        over=true;
+        renderWord(true);
+        const msg=document.getElementById('msg');
+        msg.textContent='Personne... C\'était : '+word;
+        msg.className='msg lose';
+        setTimeout(newRound,5000);
+      }
+    }
+  },1000);
+}
+
+function onWin(username){
+  if(over) return;
+  over=true;
+  clearInterval(timer);
+  renderWord(true);
+  wins++;
+  document.getElementById('wins').textContent=wins;
+  document.getElementById('msg').textContent=username+' a trouvé !';
+  document.getElementById('win-flash').classList.add('show');
+  setTimeout(newRound,5000);
+}
+
+function checkAnswer(username, message){
+  if(over) return;
+  if(norm(message)===norm(word)) onWin(username);
+}
+
+// Connexion IRC Twitch (fonctionne même hors live)
+function connectTwitch(){
+  const ws=new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  ws.onopen=()=>{
+    ws.send('PASS oauth:justinfan'+Math.floor(Math.random()*99999));
+    ws.send('NICK justinfan'+Math.floor(Math.random()*99999));
+    ws.send('JOIN #'+CHANNEL);
+  };
+  ws.onmessage=e=>{
+    const raw=e.data;
+    if(raw.startsWith('PING')){ws.send('PONG :tmi.twitch.tv');return;}
+    const match=raw.match(/^:(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(.+)$/);
+    if(match) checkAnswer(match[1], match[2].trim());
+    if(raw.includes('366')){
+      document.getElementById('dot').className='dot ok';
+      document.getElementById('status-txt').textContent='Chat connecté';
+    }
+  };
+  ws.onerror=()=>{
+    document.getElementById('dot').className='dot err';
+    document.getElementById('status-txt').textContent='Erreur';
+  };
+  ws.onclose=()=>{
+    document.getElementById('dot').className='dot err';
+    document.getElementById('status-txt').textContent='Déconnecté';
+    setTimeout(connectTwitch,5000);
+  };
+}
+
+connectTwitch();
+newRound();
+</script>
+</body>
+</html>
