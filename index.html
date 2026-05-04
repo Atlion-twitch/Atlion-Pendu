@@ -239,7 +239,9 @@ const WORDS = [
 
 function norm(s){
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .toLowerCase().replace(/['\-]/g,' ').replace(/\s+/g,' ').trim();
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
 }
 
 let word='', wins=0, errors=0, over=false, timer=null, timeLeft=ROUND_DURATION;
@@ -366,8 +368,9 @@ function connectTwitch(){
   };
 }
 
-connectTwitch();
-newRound();
+
+
+document.addEventListener("DOMContentLoaded", function(){ connectTwitch(); newRound(); });
 </script>
 </body>
 </html>
