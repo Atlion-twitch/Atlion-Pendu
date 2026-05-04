@@ -140,6 +140,19 @@
   .dot{width:5px;height:5px;border-radius:50%;background:#444;}
   .dot.ok{background:#2a9d4a;}
   .dot.err{background:var(--rouge);}
+
+  /* Leaderboard */
+  .leaderboard{padding:0 24px 10px;margin-top:4px;}
+  .lb-title{font-size:9px;letter-spacing:4px;color:rgba(139,0,0,0.5);text-transform:uppercase;margin-bottom:6px;text-align:center;}
+  .lb-row{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  .lb-rank{font-size:10px;color:rgba(139,0,0,0.5);width:14px;text-align:right;flex-shrink:0;}
+  .lb-rank.gold{color:#d4a843;}
+  .lb-rank.silver{color:#aaaaaa;}
+  .lb-rank.bronze{color:#a0522d;}
+  .lb-name{font-size:11px;color:var(--texte);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .lb-bar-wrap{width:80px;height:3px;background:rgba(139,0,0,0.15);border-radius:2px;flex-shrink:0;}
+  .lb-bar{height:100%;background:var(--rouge-dark);border-radius:2px;transition:width 0.5s;}
+  .lb-score{font-size:10px;color:var(--rouge);width:20px;text-align:right;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -180,6 +193,10 @@
       <div class="lives-row" id="lives-row"></div>
       <div class="chat-label">Écrivez le mot dans le chat !</div>
     </div>
+  </div>
+  <div class="leaderboard">
+    <div class="lb-title">— Meilleurs Ternis —</div>
+    <div id="leaderboard"></div>
   </div>
   <div class="deco-line-bottom"></div>
 </div>
@@ -324,15 +341,36 @@ function startTimer(){
   },1000);
 }
 
+function renderLeaderboard(){
+  var sorted=Object.entries(scores).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  if(sorted.length===0){document.getElementById('leaderboard').innerHTML='';return;}
+  var max=sorted[0][1];
+  var ranks=['🥇','🥈','🥉','4','5'];
+  var rankClass=['gold','silver','bronze','',''];
+  var html='';
+  sorted.forEach(function(entry,i){
+    var pct=Math.round((entry[1]/max)*100);
+    html+='<div class="lb-row">'
+      +'<div class="lb-rank '+rankClass[i]+'">'+ranks[i]+'</div>'
+      +'<div class="lb-name">'+entry[0]+'</div>'
+      +'<div class="lb-bar-wrap"><div class="lb-bar" style="width:'+pct+'%"></div></div>'
+      +'<div class="lb-score">'+entry[1]+'</div>'
+      +'</div>';
+  });
+  document.getElementById('leaderboard').innerHTML=html;
+}
+
 function onWin(username){
   if(over) return;
   over=true;
   clearInterval(timer);
   renderWord(true);
   wins++;
+  scores[username]=(scores[username]||0)+1;
   document.getElementById('wins').textContent=wins;
   document.getElementById('msg').textContent=username+' a trouvé !';
   document.getElementById('win-flash').classList.add('show');
+  renderLeaderboard();
   setTimeout(newRound,5000);
 }
 
