@@ -150,6 +150,7 @@
   <div class="corner corner-br"></div>
   <div class="status"><div class="dot" id="dot"></div><span id="status-txt">Connexion...</span></div>
 
+  <div style="position:absolute;bottom:2px;left:4px;font-size:8px;color:rgba(139,0,0,0.5);font-family:monospace;max-width:580px;overflow:hidden;white-space:nowrap;z-index:10;" id="debug"></div>
   <div class="deco-line"></div>
   <div class="inner">
     <div class="title-row">
@@ -348,6 +349,9 @@ function connectTwitch(){
     ws.send('JOIN #'+CHANNEL);
   };
   ws.onmessage=e=>{
+    // Affiche le message brut pour debug
+    document.getElementById('debug').textContent=e.data.substring(0,120);
+
     const lines=e.data.split('\r\n');
     lines.forEach(function(raw){
       if(!raw) return;
@@ -356,11 +360,11 @@ function connectTwitch(){
         document.getElementById('dot').className='dot ok';
         document.getElementById('status-txt').textContent='Chat connecté';
       }
-      // Format : :user!user@user.tmi.twitch.tv PRIVMSG #channel :message
       var match=raw.match(/:([a-zA-Z0-9_]+)![a-zA-Z0-9_]+@[a-zA-Z0-9_]+\.tmi\.twitch\.tv PRIVMSG #[a-zA-Z0-9_]+ :(.+)/);
       if(match){
         var username=match[1];
         var message=match[2].replace(/\r/g,'').trim();
+        document.getElementById('debug').textContent='MSG: '+username+' > '+message;
         checkAnswer(username, message);
       }
     });
